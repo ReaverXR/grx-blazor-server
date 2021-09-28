@@ -1,0 +1,160 @@
+﻿@page "/league/{LeagueUid:guid}"
+@using Models;
+@inject Data.ApplicationDbContext _context;
+@inject Services.Leagues.ILeagueAdminDeterminer _leagueAdminDeterminer;
+@inject Services.Seasons.ISeasonStandingsCalculator _seasonStandingsCalculator;
+@inject NavigationManager _navigationManager;
+@using Services.Seasons;
+
+<h3>@_league.Name</h3>
+<h4>@_league.Description</h4>
+
+@if(IsAdmin)
+{
+    <Button Clicked="@OnManageClicked">Manage</Button>
+}
+<h4>Current Season:</h4>
+@if(_currentSeason != null)
+{
+    <h5>@_currentSeason.Name</h5>
+    <Row>
+        <Column>
+            <Span>@_currentSeason.StartDateUtc.ToString("D") - @_currentSeason.EndDateUtc.ToString("D")</Span>
+        </Column>
+        <AuthorizeView>
+            <Authorized>
+                <Column TextAlignment="TextAlignment.Right">
+                    <Button Color="Color.Primary">Join</Button>
+                </Column>
+            </Authorized>
+        </AuthorizeView>
+    </Row>
+    
+
+    <Table>
+        <TableHeader ThemeContrast="ThemeContrast.Dark">
+            <TableRow>
+                <TableHeaderCell>Rank</TableHeaderCell>
+                <TableHeaderCell>Player</TableHeaderCell>
+                <TableHeaderCell>Games Played</TableHeaderCell>
+                <TableHeaderCell>Wins</TableHeaderCell>
+                <TableHeaderCell>Score</TableHeaderCell>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            @foreach(var standing in _currentSeasonStandings)
+            {
+                <TableRow>
+                    <TableRowCell>@standing.Rank</TableRowCell>
+                    <TableRowCell>@standing.Player.DisplayName</TableRowCell>
+                    <TableRowCell>@standing.GamesPlayed</TableRowCell>
+                    <TableRowCell>@standing.Wins</TableRowCell>
+                    <TableRowCell>@standing.Score</TableRowCell>
+                </TableRow>
+            }
+        </TableBody>
+    </Table>
+}
+else
+{
+    <Span>No season is currently underway.</Span>
+}
+
+<h4>Upcoming Seasons:</h4>
+@if(_upcomingSeasons.Any())
+{
+    <Table>
+        <TableHeader ThemeContrast="ThemeContrast.Dark">
+            <TableRow>
+                <TableHeaderCell>Season Name</TableHeaderCell>
+                <TableHeaderCell>Start Date</TableHeaderCell>
+                <TableHeaderCell>End Date</TableHeaderCell>
+                <TableHeaderCell></TableHeaderCell>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            @foreach(var upcomingSeason in _upcomingSeasons)
+            {
+                <TableRow>
+                    <TableRowCell>@upcomingSeason.Name</TableRowCell>
+                    <TableRowCell>@upcomingSeason.StartDateUtc.ToString("D")</TableRowCell>
+                    <TableRowCell>@upcomingSeason.EndDateUtc.ToString("D")</TableRowCell>
+                    <TableRowCell>@if(_upcomingSeasons.First() == upcomingSeason) {<Button Color="Color.Primary">Join</Button>}</TableRowCell>
+                </TableRow>
+            }
+        </TableBody>
+    </Table>
+}
+else
+{
+    <Span>No upcoming seasons</Span>
+}
+
+@if(_pastSeasons.Any())
+{
+    <h4>Previous Seasons:</h4>
+    <Table>
+        <TableHeader ThemeContrast="ThemeContrast.Dark">
+            <TableRow>
+                <TableHeaderCell>Season Name</TableHeaderCell>
+                <TableHeaderCell>Start Date</TableHeaderCell>
+                <TableHeaderCell>End Date</TableHeaderCell>
+                <TableHeaderCell>Winner</TableHeaderCell>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            @foreach(var pastSeason in _pastSeasons)
+            {
+            <TableRow>
+                <TableRowCell>@pastSeason.Name</TableRowCell>
+                <TableRowCell>@pastSeason.StartDateUtc.ToString("D")</TableRowCell>
+                <TableRowCell>@pastSeason.EndDateUtc.ToString("D")</TableRowCell>
+                <TableRowCell>*winner here*</TableRowCell>
+            </TableRow>
+            }
+        </TableBody>
+    </Table>
+}
+
+@code {
+
+    [Parameter]
+    public Guid LeagueUid { get; set; }
+
+    private bool IsAdmin { get; set; }
+
+    public Models.League _league;
+
+    private List<Season> _pastSeasons;
+    private List<Season> _upcomingSeasons;
+    private Season _currentSeason;
+
+    private IOrderedEnumerable<SeasonStanding> _currentSeasonStandings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _league = _context.Leagues
+            .Include(l => l.Seasons)
+            .First(l => l.LeagueUid == LeagueUid);
+
+        _pastSeasons = _league.Seasons.Where(s => s.EndDateUtc < DateTime.UtcNow).ToList();
+        _upcomingSeasons = _league.Seasons.Where(s => s.StartDateUtc > DateTime.UtcNow).OrderBy(s => s.StartDateUtc).ToList();
+
+        _currentSeason = _league.Seasons.FirstOrDefault(s => s.StartDateUtc <= DateTime.UtcNow && s.EndDateUtc >= DateTime.UtcNow);
+
+        if(_currentSeason != null)
+        {
+            _currentSeasonStandings = _seasonStandingsCalculator.CalculateSeasonStandings(_currentSeason.SeasonUid);
+        }
+
+        IsAdmin = await _leagueAdminDeterminer.IsUserLeagueAdmin(LeagueUid);
+
+        await base.OnInitializedAsync();
+    }
+
+    protected void OnManageClicked()
+    {
+        _navigationManager.NavigateTo($"/league/{LeagueUid}/manage");
+    }
+
+}

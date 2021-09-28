@@ -1,0 +1,96 @@
+﻿@page "/league/{LeagueUid:guid}/manage"
+@inject AuthenticationStateProvider _authenticationStateProvider;
+@inject Data.ApplicationDbContext _context;
+@inject Services.Leagues.ILeagueAdminDeterminer _leagueAdminDeterminer;
+@inject NavigationManager _navigationManager;
+@using Microsoft.EntityFrameworkCore;
+
+@if (IsAdmin)
+{
+    <h3>ManageLeague</h3>
+    <Container>
+        <Button Color="Color.Primary" Clicked="@CreateSeasonClicked">Create Season</Button>
+    </Container>
+    <EditForm Model="@League" OnValidSubmit="@HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <Blazorise.ValidationSummary />
+
+        <InputText id="name" @bind-Value="League.Name" />
+        <InputTextArea id="description" @bind-Value="League.Description" />
+        <div>
+            <h3>League Nights</h3>
+            <ListGroup>
+                @if (League.LeagueNights != null && League.LeagueNights.Any())
+                {
+                    @foreach (var leagueNight in League.LeagueNights)
+                    {
+                        <ListGroupItem>
+                            @if (League.LeagueNights.First() != leagueNight)
+                            {
+                                <Divider />
+                            }
+                            <Span>Day of Week:</Span>
+                            <Select @bind-SelectedValue="@leagueNight.DayOfWeek">
+                                @foreach (var dayOfWeek in Enum.GetValues(typeof(DayOfWeek)))
+                                            {
+                                    <SelectItem Value="@dayOfWeek">@dayOfWeek.ToString()</SelectItem>
+                                            }
+                            </Select>
+                            <Span>Start time:</Span>
+                            <TimeEdit @bind-Time="@leagueNight.StartTime" />
+                            <Span>End time:</Span>
+                            <TimeEdit @bind-Time="@leagueNight.EndTime" />
+                            <Span>Location:</Span>
+                            <TextEdit @bind-Text="@leagueNight.Location" />
+                        </ListGroupItem>
+                    }
+                }
+            </ListGroup>
+            <Button Color="Color.Primary" Type="ButtonType.Button" Clicked="@AddLeagueNight">Add League Night</Button>
+        </div>
+        <Button Type="ButtonType.Submit">Submit</Button>
+    </EditForm>
+}
+else
+{
+    <h3>Unauthorized</h3>
+}
+
+
+@code {
+
+    [Parameter]
+    public Guid LeagueUid { get; set; }
+
+    private Models.League League { get; set; }
+
+    private bool IsAdmin { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsAdmin = await _leagueAdminDeterminer.IsUserLeagueAdmin(LeagueUid);
+
+        League = _context.Leagues.Include(l => l.LeagueNights).First(l => l.LeagueUid == LeagueUid);
+
+        await base.OnInitializedAsync();
+    }
+
+    protected void AddLeagueNight()
+    {
+        if (League.LeagueNights == null)
+        {
+            League.LeagueNights = new List<Models.LeagueNight>();
+        }
+        League.LeagueNights.Add(new Models.LeagueNight { LeagueUid = League.LeagueUid, League = League });
+    }
+
+    protected async Task HandleValidSubmit()
+    {
+        await _context.SaveChangesAsync();
+    }
+
+    protected void CreateSeasonClicked()
+    {
+        _navigationManager.NavigateTo($"/league/{LeagueUid}/season/create");
+    }
+}

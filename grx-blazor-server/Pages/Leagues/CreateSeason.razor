@@ -1,0 +1,100 @@
+﻿@page "/league/{LeagueUid:guid}/season/create"
+@inject Data.ApplicationDbContext _context;
+@inject Services.Leagues.ILeagueAdminDeterminer _leagueAdminDeterminer;
+@using Microsoft.EntityFrameworkCore;
+
+<h3>Create Season</h3>
+<EditForm Model="@Season" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <Blazorise.ValidationSummary />
+
+    <Row>
+        <Column>
+            <Span>Season Name:</Span>
+        </Column>
+        <Column>
+            <TextEdit @bind-Text="Season.Name" />
+        </Column>
+    </Row>
+    <Row>
+        <Column ColumnSize="ColumnSize.Is1">
+            <Span>Season Description:</Span>
+        </Column>
+    </Row>
+    <Row>
+        <Column ColumnSize="ColumnSize.Is2">
+            <InputTextArea id="description" @bind-Value="Season.Description" />
+        </Column>
+    </Row>
+    <Row>
+        <Column ColumnSize="ColumnSize.Is1">
+            <Span>Starting on:</Span>
+        </Column>
+        <Column ColumnSize="ColumnSize.Is1">
+            <DatePicker @bind-Date="StartDateLocal" />
+        </Column>
+        <Column ColumnSize="ColumnSize.Is1">
+            <Span>Ending on:</Span>
+        </Column>
+        <Column ColumnSize="ColumnSize.Is1">
+            <DatePicker @bind-Date="EndDateLocal" />
+        </Column>
+    </Row>
+    <Row>
+        <Column ColumnSize="ColumnSize.Is1">
+            <Span>Games to be played:</Span>
+        </Column>
+        <Column ColumnSize="ColumnSize.Is1">
+            <NumericEdit Min="1" @bind-Value="Season.MaxGamesPerPlayer" />
+        </Column>
+    </Row>
+    <Button Type="ButtonType.Submit" Color="Color.Primary">Create Season</Button>
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public Guid LeagueUid { get; set; }
+
+    private DateTime StartDateLocal { get; set; } = DateTime.Now;
+    private DateTime EndDateLocal { get; set; } = DateTime.Now;
+
+    private Models.Season Season { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Season = new Models.Season
+        {
+            SeasonUid = Guid.NewGuid(),
+            LeagueUid = LeagueUid
+        };
+
+        await base.OnInitializedAsync();
+    }
+
+    protected async Task HandleValidSubmit()
+    {
+        if(!await _leagueAdminDeterminer.IsUserLeagueAdmin(LeagueUid))
+        {
+            return;
+        }
+
+        Season.StartDateUtc = TimeZoneInfo.ConvertTimeToUtc(StartDateLocal, TimeZoneInfo.Local);
+        Season.EndDateUtc = TimeZoneInfo.ConvertTimeToUtc(EndDateLocal, TimeZoneInfo.Local);
+
+        var league = _context.Leagues
+            .Include(l => l.Seasons)
+            .First(l => l.LeagueUid == LeagueUid);
+
+        Season.League = league;
+
+        _context.Seasons.Add(Season);
+
+        league.Seasons.Add(Season);
+
+        _context.Leagues.Update(league);
+
+        await _context.SaveChangesAsync();
+    }
+
+}

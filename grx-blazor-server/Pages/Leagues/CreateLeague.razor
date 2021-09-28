@@ -1,0 +1,37 @@
+﻿@page "/create";
+@using Models;
+@using Data; 
+@using Microsoft.EntityFrameworkCore;
+@using System.Security.Claims;
+@inject AuthenticationStateProvider _authenticationStateProvider;
+@inject Data.ApplicationDbContext _context;
+
+<h3>CreateLeague</h3>
+
+<EditForm Model="@newLeague" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <Blazorise.ValidationSummary />
+
+    <InputText id="name" @bind-Value="newLeague.Name" />
+    <InputTextArea id="description" @bind-Value="newLeague.Description" />
+
+    <Button Type="ButtonType.Submit">Submit</Button>
+</EditForm>
+
+@code {
+    private Models.League newLeague = new Models.League();
+
+    private async Task HandleValidSubmit()
+    {
+        newLeague.LeagueUid = Guid.NewGuid();
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        Guid userUid = new Guid(authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value);
+
+        newLeague.LeagueUid = Guid.NewGuid();
+        newLeague.OwningUserUid = userUid;
+
+        _context.Leagues.Add(newLeague);
+
+        await _context.SaveChangesAsync();
+    }
+}

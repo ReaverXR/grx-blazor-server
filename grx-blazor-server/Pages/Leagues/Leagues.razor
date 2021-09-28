@@ -1,0 +1,44 @@
+﻿@page "/leagues";
+@using Models;
+@inject Data.ApplicationDbContext _context;
+
+<h3>Leagues</h3>
+
+<AuthorizeView>
+    <Authorized>
+        <Button>Create League</Button>
+    </Authorized>
+</AuthorizeView>
+
+<Table>
+    <TableHeader ThemeContrast="ThemeContrast.Dark">
+        <TableRow>
+            <TableHeaderCell>League Name</TableHeaderCell>
+            <TableHeaderCell>Description</TableHeaderCell>
+        </TableRow>
+    </TableHeader>
+    <TableBody>
+        @foreach(var league in AllLeagues)
+        {
+            <TableRow>
+                <TableRowCell><a href='/league/@league.LeagueUid'>@league.Name</a></TableRowCell>
+                <TableRowCell>@league.Description</TableRowCell>
+            </TableRow>
+        }
+    </TableBody>
+</Table>
+
+@code { 
+
+    public List<Models.League> AllLeagues = new List<Models.League>();
+
+    protected override Task OnInitializedAsync()
+    {
+        AllLeagues = new List<Models.League>(_context.Leagues);
+        AllLeagues = AllLeagues
+            .OrderBy(l => l.Name).ToList();
+
+        return base.OnInitializedAsync();
+    }
+
+}
