@@ -19,6 +19,7 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace grx_blazor_server
@@ -45,6 +46,7 @@ namespace grx_blazor_server
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
             services.AddDatabaseDeveloperPageExceptionFilter();
+            services.AddHttpClient();
 
             // Blazorise
             services.AddBlazorise(options =>

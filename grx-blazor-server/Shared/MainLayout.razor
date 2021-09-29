@@ -1,7 +1,44 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
+<div class="container">
+    <!-- Nav Menu -->
+    <div>
+        <!-- Left Aligned Nav -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">X-Wing League Hub</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Home</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Leagues
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#">My Leagues</a>
+                            <a class="dropdown-item" href="#">Find a League</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="#">Create a League</a>
+                        </div>
+                    </li>
+                </ul>
+                <div class="my-2 my-lg-0">
+                    <LoginDisplay />
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Body -->
+    <div class="content">
+        @Body
+    </div>
+    <!--<div class="sidebar">
         <NavMenu />
     </div>
 
@@ -14,5 +51,5 @@
         <div class="content px-4">
             @Body
         </div>
-    </div>
+    </div>-->
 </div>
